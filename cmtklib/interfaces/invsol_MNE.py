@@ -10,6 +10,8 @@ import numpy as  np
 import mne 
 from nipype.interfaces.base import BaseInterface, BaseInterfaceInputSpec, traits, TraitedSpec
 
+import cmtklib.interfaces.my_mne_minimum_norm_inverse as my_mne_minimum_norm_inverse # version of mne.minimum_norm.inverse.py that returns the inverse matrix 
+
 class MNEInverseSolutionInputSpec(BaseInterfaceInputSpec):
     """Input specification for InverseSolution."""
     
@@ -73,7 +75,7 @@ class MNEInverseSolution(BaseInterface):
         parcellation = self.inputs.parcellation
         self.roi_ts_file = self.inputs.roi_ts_file 
                 
-        if not os.path.exists(self.roi_ts_file):
+        if os.path.exists(self.roi_ts_file):
             roi_tcs = self._createInv_MNE(bids_dir, subject, epochs_file, fwd_fname, noise_cov_fname, src_file, parcellation)
             np.save(self.roi_ts_file, roi_tcs)
         
@@ -93,7 +95,7 @@ class MNEInverseSolution(BaseInterface):
         snr = 3.
         lambda2 = 1. / snr ** 2
         evoked = epochs.average().pick('eeg')
-        stcs = mne.minimum_norm.apply_inverse_epochs(epochs, inverse_operator, lambda2, method, pick_ori="normal", nave=evoked.nave,return_generator=False) 
+        stcs, inverse_matrix = my_mne_minimum_norm_inverse.apply_inverse_epochs(epochs, inverse_operator, lambda2, method, pick_ori="normal", nave=evoked.nave,return_generator=False) 
         
         # get ROI time courses 
         # read the labels of the source points 
@@ -102,7 +104,13 @@ class MNEInverseSolution(BaseInterface):
         # get the ROI time courses 
         roi_tcs = mne.extract_label_time_course(stcs, labels_parc, src, mode='pca_flip', allow_empty=True,
         return_generator=False)
-                
+        
+        # save leadfield and inverse matrix for subsequent MNE-software independent EEG quality control stage
+        leadfield = fwd['sol']['data']
+        np.save(os.path.join(bids_dir,'derivatives','cmp',subject,'eeg',subject+'_leadfield.npy'),leadfield)
+        import pdb
+        pdb.set_trace()
+        
         return roi_tcs
 
     def _list_outputs(self):

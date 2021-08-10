@@ -25,7 +25,7 @@ class EEGQInputSpec(BaseInterfaceInputSpec):
 class EEGQOutputSpec(TraitedSpec):
     """Output specification for creating MNE source space."""
     
-    measures = traits.dict(desc='dictionary containing quality measurements')
+    measures = traits.Dict(desc='dictionary containing quality measurements')
 
 class EEGQ(BaseInterface):
     input_spec = EEGQInputSpec

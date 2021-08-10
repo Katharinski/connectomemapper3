@@ -94,6 +94,7 @@ class MNEInverseSolution(BaseInterface):
         method = "sLORETA" 
         snr = 3.
         lambda2 = 1. / snr ** 2
+        
         evoked = epochs.average().pick('eeg')
         stcs, inverse_matrix = my_mne_minimum_norm_inverse.apply_inverse_epochs(epochs, inverse_operator, lambda2, method, pick_ori="normal", nave=evoked.nave,return_generator=False) 
         
@@ -105,9 +106,12 @@ class MNEInverseSolution(BaseInterface):
         roi_tcs = mne.extract_label_time_course(stcs, labels_parc, src, mode='pca_flip', allow_empty=True,
         return_generator=False)
         
-        # save leadfield and inverse matrix for subsequent MNE-software independent EEG quality control stage
-        leadfield = fwd['sol']['data']
-        np.save(os.path.join(bids_dir,'derivatives','cmp',subject,'eeg',subject+'_leadfield.npy'),leadfield)
+        # get resolution matrix 
+        # get a version of the leadfield that is 1D (normal orientation)
+        forward_1D = mne.forward.convert_forward_solution(fwd, surf_ori=True,force_fixed=True)
+        leadfield = forward_1D['sol']['data']
+        R = np.dot(inverse_matrix,leadfield)
+        
         import pdb
         pdb.set_trace()
         

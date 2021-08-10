@@ -89,25 +89,22 @@ class EEGLAB2fif(BaseInterface):
         epochs.apply_baseline((start_t,0))
         epochs.set_eeg_reference(ref_channels='average',projection = True)
         epochs.crop(tmin=start_t,tmax=end_t)
-        
+                
         # create info object with information about electrode positions 
         n = int(open(montage_fname).readline().lstrip().split(' ')[0])
         all_coord = np.loadtxt(montage_fname, skiprows=1, usecols=(0, 1, 2), max_rows=n)
         all_names = np.loadtxt(montage_fname, skiprows=1, usecols=3, max_rows=n,dtype=np.dtype(str)).tolist()
         all_coord = list(map(lambda x: x/1000,all_coord))
         ch_coord  = [all_coord[idx] for idx, chan in  enumerate(all_names) if chan not in ['lpa','rpa','nasion']]
+        # overwrite channel names? 
         ch_names  = [all_names[idx] for idx, chan in  enumerate(all_names) if chan not in ['lpa','rpa','nasion']]   
         
         # create the montage object with the channel names and positions read from the file 
         montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, ch_coord)),coord_frame='head')
         # align with MRI 
         dev_head_t = np.loadtxt(dev_head_t_fname)
-        montage.dev_head_t = dev_head_t
-    
-        sfreq = EEG_params['sfreq']
-        info = mne.create_info(ch_names, sfreq, 'eeg')
-        info.set_montage(montage)
-        epochs.info = info
+        montage.dev_head_t = dev_head_t    
+        epochs.info.set_montage(montage)
         
         epochs.save(epochs_fif_fname, overwrite=True)
 

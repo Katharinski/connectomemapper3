@@ -48,7 +48,7 @@ class CreateFwd(BaseInterface):
         epochs = mne.read_epochs(epochs_fname)
         info = epochs.info 
         
-        if os.path.exists(fwd_fname):
+        if not os.path.exists(fwd_fname):
             self.has_run = True
         else:
             self.has_run = self._create_Fwd(src, bem, trans, info, fwd_fname)
@@ -57,7 +57,11 @@ class CreateFwd(BaseInterface):
 
     @staticmethod
     def _create_Fwd(src,bem,trans,info,fwd_fname):
-        fwd = mne.make_forward_solution(info, trans=trans, src=src,bem=bem, meg=False, eeg=True, mindist=5.0, n_jobs=4)
+        mindist = 0. # 5.0
+        fwd = mne.make_forward_solution(
+            info, trans=trans, src=src,bem=bem, meg=False, eeg=True, mindist=mindist, n_jobs=4)
+        import pdb
+        pdb.set_trace()
         mne.write_forward_solution(fwd_fname, fwd, overwrite=True, verbose=None)
         has_run = True
         return has_run

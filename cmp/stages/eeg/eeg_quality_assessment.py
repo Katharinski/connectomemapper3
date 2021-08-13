@@ -29,23 +29,36 @@ class EEGQualityStage(Stage):
         self.bids_dir = bids_dir
         self.output_dir = output_dir
         self.config = EEGQualityConfig()
-        self.inputs = ["inverse_matrix_file","leadfield_file","dipoles_xyz"]
+        self.inputs = ["fwd_fname", "inv_fname", "epochs_fif_fname"]
         self.outputs = ["measures_dict"]
         
         
-        def create_workflow(self, flow, inputnode, outputnode):
-            eegquality_node = pe.Node(interface=EEGQ(), name="eegquality")
-            
-            flow.connect([(inputnode, eegquality_node,
-                   [('inverse_matrix_file','inverse_matrix_file'),
-                    ('leadfield_file','leadfield_file'), 
-                    ('dipoles_xyz','dipoles_xyz')
-                  ]
-                    )])  
-            
-            flow.connect([(eegquality_node, outputnode
-                   [('measures','measures_dict')
-                  ]
-                    )])  
-            
+    def create_workflow(self, flow, inputnode, outputnode):
+        eegquality_node = pe.Node(interface=EEGQ(), name="eegquality")
+        
+        flow.connect([(inputnode, eegquality_node,
+               [('fwd_fname', 'fwd_fname'),
+                ('inv_fname','inv_fname'),
+                ('epochs_fif_fname', 'epochs_fif_fname')
+              ]
+                )])  
+        
+        flow.connect([(eegquality_node, outputnode
+               [('measures','measures_dict')
+              ]
+                )])  
+        
+    def define_inspect_outputs(self):
+        raise NotImplementedError
+
+    def has_run(self):
+        """Function that returns `True` if the stage has been run successfully.
+
+        Returns
+        -------
+        `True` if the stage has been run successfully
+        """
+        return False
+
+        
             

@@ -175,21 +175,10 @@ class EEGPipeline(Pipeline):
         # create stages (parameters specified in config file are read and set)
         preparer_flow = self.create_stage_flow("EEGPreparer")
         loader_flow = self.create_stage_flow("EEGLoader")
+        import pdb
+        pdb.set_trace()
         invsol_flow = self.create_stage_flow("EEGInverseSolution")
-                
-        # 2do: implement dataset-generic workflow! 
-        # workflow for reading EEG data 
-            # read file name from config file 
-            # figure out format from file name and return error if not implemented 
-            # find the file in the correct derivatives folder depending on the format 
-        # more specifically: 
-            # rn, variable name in config file is "eeg_format", and from that, "epochs" is created 
-            # --> instead, read "epochs" and create "eeg_format" from that 
-        # parcellation file: (how does it work in anatomical pipeline?)
-            # search for file name using the provided string 
-            # if it can't be found, look for any file name that has the string as a part of it, display information 
-            # if both fail, display an error 
-        # other EEG params (see config file)
+        quality_flow = self.create_stage_flow("EEGQualityAssessment")
         
         # read name of eeg file and determine format and derivatives folder name 
         epochs_fname = self.stages['EEGPreparer'].config.epochs        
@@ -308,6 +297,13 @@ class EEGPipeline(Pipeline):
                                                          'eeg', 
                                                          self.subject + '-fwd.fif')
             
+            datasource.inputs.inv_fname = os.path.join(self.base_directory,
+                                                         'derivatives',
+                                                         'cmp',
+                                                         self.subject, 
+                                                         'eeg', 
+                                                         self.subject + '-inv.fif')
+            
             ######
             # this is non-standard, needs to be fixed!! 
             # datasource.inputs.electrode_positions_file = os.path.join(self.base_directory,
@@ -364,11 +360,16 @@ class EEGPipeline(Pipeline):
                                                ('noise_cov_fname','inputnode.noise_cov_fname'),
                                                ('trans_fname','inputnode.trans_fname'),
                                                ('fwd_fname','inputnode.fwd_fname'),
+                                               ('inv_fname','inputnode.inv_fname'),
                                                ('parcellation', 'inputnode.parcellation'),
                                                ('roi_ts_file', 'inputnode.roi_ts_file')]),
                     
                     (loader_flow, invsol_flow, [('outputnode.src', 'inputnode.src_file'),
                                                 ('outputnode.bem', 'inputnode.bem_file')]),
+                    
+                    (datasource, quality_flow, [('fwd_fname', 'inputnode.fwd_fname'),
+                                                 ('inv_fname','inputnode.inv_fname'),
+                                                 ('epochs_fif_fname', 'inputnode.epochs_fif_fname')])
                     
                     (invsol_flow, sinker, [("outputnode.roi_ts_file", "eeg.@roi_ts_file")]),
                 ]

@@ -42,6 +42,9 @@ class MNEInverseSolutionInputSpec(BaseInterfaceInputSpec):
     fwd_fname = traits.File(
         desc="forward solution in fif format", mandatory=True)
     
+    inv_fname = traits.File(
+        desc="inverse operator in fif format", mandatory=True)
+    
     parcellation = traits.Str(
         desc='parcellation scheme')
     
@@ -71,24 +74,29 @@ class MNEInverseSolution(BaseInterface):
         epochs_file = self.inputs.epochs_fif_fname   
         src_file = self.inputs.src_file[0]
         fwd_fname = self.inputs.fwd_fname
+        inv_fname = self.inputs.inv_fname
         noise_cov_fname = self.inputs.noise_cov_fname
         parcellation = self.inputs.parcellation
         self.roi_ts_file = self.inputs.roi_ts_file 
                 
-        if os.path.exists(self.roi_ts_file):
-            roi_tcs = self._createInv_MNE(bids_dir, subject, epochs_file, fwd_fname, noise_cov_fname, src_file, parcellation)
+        if not os.path.exists(self.roi_ts_file):
+            roi_tcs = self._createInv_MNE(
+                bids_dir, subject, epochs_file, fwd_fname, noise_cov_fname, src_file, parcellation, inv_fname)
             np.save(self.roi_ts_file, roi_tcs)
         
         return runtime
 
 
-    def _createInv_MNE(self, bids_dir, subject, epochs_file, fwd_fname, noise_cov_fname, src_file, parcellation):  
+    def _createInv_MNE(
+            self, bids_dir, subject, epochs_file, fwd_fname, noise_cov_fname, src_file, parcellation, inv_fname):  
         epochs = mne.read_epochs(epochs_file)
         fwd = mne.read_forward_solution(fwd_fname)
         noise_cov = mne.read_cov(noise_cov_fname)
         src = mne.read_source_spaces(src_file, patch_stats=False, verbose=None)
         # compute the inverse operator 
-        inverse_operator = mne.minimum_norm.make_inverse_operator(epochs.info, fwd, noise_cov, loose=1, depth=None, fixed=False)
+        inverse_operator = mne.minimum_norm.make_inverse_operator(
+            epochs.info, fwd, noise_cov, loose=1, depth=None, fixed=False)
+        mne.minimum_norm.write_inverse_operator(inv_fname, inverse_operator)
         # compute the time courses of the source points 
         # some parameters 
         method = "sLORETA" 
@@ -105,15 +113,6 @@ class MNEInverseSolution(BaseInterface):
         # get the ROI time courses 
         roi_tcs = mne.extract_label_time_course(stcs, labels_parc, src, mode='pca_flip', allow_empty=True,
         return_generator=False)
-        
-        # get resolution matrix 
-        # get a version of the leadfield that is 1D (normal orientation)
-        forward_1D = mne.forward.convert_forward_solution(fwd, surf_ori=True,force_fixed=True)
-        leadfield = forward_1D['sol']['data']
-        R = np.dot(inverse_matrix,leadfield)
-        
-        import pdb
-        pdb.set_trace()
         
         return roi_tcs
 

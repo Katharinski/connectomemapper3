@@ -175,8 +175,6 @@ class EEGPipeline(Pipeline):
         # create stages (parameters specified in config file are read and set)
         preparer_flow = self.create_stage_flow("EEGPreparer")
         loader_flow = self.create_stage_flow("EEGLoader")
-        import pdb
-        pdb.set_trace()
         invsol_flow = self.create_stage_flow("EEGInverseSolution")
         quality_flow = self.create_stage_flow("EEGQualityAssessment")
         
@@ -199,6 +197,8 @@ class EEGPipeline(Pipeline):
         datasource.inputs.EEG_params = self.stages['EEGPreparer'].config.EEG_params
         
         # read name of parcellation and determine file name 
+        import pdb
+        pdb.set_trace()
         parcellation_label = self.stages['EEGPreparer'].config.parcellation['label']
         parcellation_desc = self.stages['EEGPreparer'].config.parcellation['desc']
         parcellation_suffix = self.stages['EEGPreparer'].config.parcellation['suffix']
@@ -369,7 +369,7 @@ class EEGPipeline(Pipeline):
                     
                     (datasource, quality_flow, [('fwd_fname', 'inputnode.fwd_fname'),
                                                  ('inv_fname','inputnode.inv_fname'),
-                                                 ('epochs_fif_fname', 'inputnode.epochs_fif_fname')])
+                                                 ('epochs_fif_fname', 'inputnode.epochs_fif_fname')]),
                     
                     (invsol_flow, sinker, [("outputnode.roi_ts_file", "eeg.@roi_ts_file")]),
                 ]

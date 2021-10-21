@@ -43,7 +43,7 @@ class EEGQualityStage(Stage):
               ]
                 )])  
         
-        flow.connect([(eegquality_node, outputnode
+        flow.connect([(eegquality_node, outputnode,
                [('measures','measures_dict')
               ]
                 )])  

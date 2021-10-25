@@ -5,10 +5,11 @@
 #  This software is distributed under the open-source license Modified BSD.
 
 #import os
-#import pickle
+import pickle
 import mne
 from mne.minimum_norm.resolution_matrix import make_inverse_resolution_matrix
 from nipype.interfaces.base import BaseInterface, BaseInterfaceInputSpec, traits, TraitedSpec
+import pdb
 
 
 class EEGQInputSpec(BaseInterfaceInputSpec):
@@ -22,12 +23,16 @@ class EEGQInputSpec(BaseInterfaceInputSpec):
     
     epochs_fif_fname = traits.File(
         desc='eeg * epochs in .set format', mandatory=True)
+    
+    measures_file = traits.File(
+        exists=False, desc="Quality measures dict in .pkl format")
 
 
 class EEGQOutputSpec(TraitedSpec):
     """Output specification for creating MNE source space."""
     
-    measures = traits.Dict(desc='dictionary containing quality measurements')
+    measures_file = traits.File(
+        exists=False, desc="Quality measures dict in .pkl format")
 
 class EEGQ(BaseInterface):
     input_spec = EEGQInputSpec
@@ -40,13 +45,16 @@ class EEGQ(BaseInterface):
         forward_1D = mne.forward.convert_forward_solution(fwd, surf_ori=True,force_fixed=True)
         inv_fname = self.inputs.inv_fname
         inverse_operator = mne.minimum_norm.read_inverse_operator(inv_fname)
-                
-        self.measures = self._compute_measures(forward_1D, inverse_operator)
+        self.measures_file = self.inputs.measures_file
+
+        measures = self._compute_measures(forward_1D, inverse_operator)
+        with open(self.inputs.measures_file,'wb') as f: 
+            pickle.dump(measures,f, pickle.HIGHEST_PROTOCOL)
 
         return runtime
 
     @staticmethod
-    def _compute_measures(fwd, inv, pos):
+    def _compute_measures(fwd, inv):
         ''' 
         Measures on the source point/dipole level are implemented using standard MNE functionality as described in 
         Hauk et al., bioRxiv (2019), https://doi.org/10.1101/672956
@@ -59,19 +67,21 @@ class EEGQ(BaseInterface):
         method = "sLORETA" 
         snr = 3.
         lambda2 = 1. / snr ** 2
-        import pdb
-        pdb.set_trace()
+
         res_matrix = make_inverse_resolution_matrix(fwd, inv, method=method, lambda2=lambda2)
-        
         measures = dict()
         # localization error 
         # calculate difference in position between peak of point spread function and dipole position
-        LE = mne.minimum_norm.resolution_metrics(res_matrix, fwd['src'], function='psf', metric='peak_err')
-        measures['loc_error'] = LE        
+        LE_psf = mne.minimum_norm.resolution_metrics(res_matrix, fwd['src'], function='psf', metric='peak_err')
+        measures['loc_error_psf'] = LE_psf
         
+        # calculate difference in position between peak of cross talk function and dipole position
+        LE_ctf = mne.minimum_norm.resolution_metrics(res_matrix, fwd['src'], function='ctf', metric='peak_err')
+        measures['loc_error_ctf'] = LE_ctf
+
         return measures
 
     def _list_outputs(self):
         outputs = self._outputs().get()
-        outputs['quality_measures'] = self.measures
+        outputs['measures_file'] = self.measures_file
         return outputs

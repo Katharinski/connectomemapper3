@@ -29,8 +29,8 @@ class EEGQualityStage(Stage):
         self.bids_dir = bids_dir
         self.output_dir = output_dir
         self.config = EEGQualityConfig()
-        self.inputs = ["fwd_fname", "inv_fname", "epochs_fif_fname"]
-        self.outputs = ["measures_dict"]
+        self.inputs = ["fwd_fname", "inv_fname", "epochs_fif_fname", "measures_file"]
+        self.outputs = ["measures_file"]
         
         
     def create_workflow(self, flow, inputnode, outputnode):
@@ -39,12 +39,13 @@ class EEGQualityStage(Stage):
         flow.connect([(inputnode, eegquality_node,
                [('fwd_fname', 'fwd_fname'),
                 ('inv_fname','inv_fname'),
-                ('epochs_fif_fname', 'epochs_fif_fname')
+                ('epochs_fif_fname', 'epochs_fif_fname'),
+                ('measures_file','measures_file')
               ]
                 )])  
         
         flow.connect([(eegquality_node, outputnode,
-               [('measures','measures_dict')
+               [('measures_file','measures_file')
               ]
                 )])  
         

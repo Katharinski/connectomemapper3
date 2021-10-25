@@ -60,8 +60,6 @@ class CreateFwd(BaseInterface):
         mindist = 0. # 5.0
         fwd = mne.make_forward_solution(
             info, trans=trans, src=src,bem=bem, meg=False, eeg=True, mindist=mindist, n_jobs=4)
-        import pdb
-        pdb.set_trace()
         mne.write_forward_solution(fwd_fname, fwd, overwrite=True, verbose=None)
         has_run = True
         return has_run

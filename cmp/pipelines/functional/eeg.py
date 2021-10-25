@@ -197,8 +197,6 @@ class EEGPipeline(Pipeline):
         datasource.inputs.EEG_params = self.stages['EEGPreparer'].config.EEG_params
         
         # read name of parcellation and determine file name 
-        import pdb
-        pdb.set_trace()
         parcellation_label = self.stages['EEGPreparer'].config.parcellation['label']
         parcellation_desc = self.stages['EEGPreparer'].config.parcellation['desc']
         parcellation_suffix = self.stages['EEGPreparer'].config.parcellation['suffix']
@@ -232,6 +230,16 @@ class EEGPipeline(Pipeline):
             self.subject,
             'eeg',
             self.subject + '_rtc_epo.npy'
+        )
+        
+        # name of file where quality measures of inverse solution are saved
+        datasource.inputs.measures_file = os.path.join(
+            self.base_directory,
+            'derivatives',
+            'cmp',
+            self.subject,
+            'eeg',
+            self.subject + '_QEEG.pkl'
         )
 
         datasource.inputs.output_query = dict()
@@ -376,7 +384,8 @@ class EEGPipeline(Pipeline):
                     
                     (datasource, quality_flow, [('fwd_fname', 'inputnode.fwd_fname'),
                                                  ('inv_fname','inputnode.inv_fname'),
-                                                 ('epochs_fif_fname', 'inputnode.epochs_fif_fname')]),
+                                                 ('epochs_fif_fname', 'inputnode.epochs_fif_fname'),
+                                                 ('measures_file','inputnode.measures_file')]),
                     
                     (invsol_flow, sinker, [("outputnode.roi_ts_file", "eeg.@roi_ts_file")]),
                 ]

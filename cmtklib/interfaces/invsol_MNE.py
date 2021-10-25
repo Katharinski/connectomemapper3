@@ -79,7 +79,7 @@ class MNEInverseSolution(BaseInterface):
         parcellation = self.inputs.parcellation
         self.roi_ts_file = self.inputs.roi_ts_file 
                 
-        if os.path.exists(self.roi_ts_file):
+        if not os.path.exists(self.roi_ts_file):
             roi_tcs = self._createInv_MNE(
                 bids_dir, subject, epochs_file, fwd_fname, noise_cov_fname, src_file, parcellation, inv_fname)
             np.save(self.roi_ts_file, roi_tcs)
@@ -94,8 +94,10 @@ class MNEInverseSolution(BaseInterface):
         noise_cov = mne.read_cov(noise_cov_fname)
         src = mne.read_source_spaces(src_file, patch_stats=False, verbose=None)
         # compute the inverse operator 
+        # inverse_operator = mne.minimum_norm.make_inverse_operator(
+        #     epochs.info, fwd, noise_cov, loose=1, depth=None, fixed=False)
         inverse_operator = mne.minimum_norm.make_inverse_operator(
-            epochs.info, fwd, noise_cov, loose=1, depth=None, fixed=False)
+            epochs.info, fwd, noise_cov, loose=0, depth=None, fixed=True)
         mne.minimum_norm.write_inverse_operator(inv_fname, inverse_operator)
         # compute the time courses of the source points 
         # some parameters 
@@ -104,8 +106,8 @@ class MNEInverseSolution(BaseInterface):
         lambda2 = 1. / snr ** 2
         
         evoked = epochs.average().pick('eeg')
-        stcs, inverse_matrix = my_mne_minimum_norm_inverse.apply_inverse_epochs(epochs, inverse_operator, lambda2, method, pick_ori="normal", nave=evoked.nave,return_generator=False) 
-        
+        # stcs, inverse_matrix = my_mne_minimum_norm_inverse.apply_inverse_epochs(epochs, inverse_operator, lambda2, method, pick_ori="normal", nave=evoked.nave,return_generator=False) 
+        stcs = mne.minimum_norm.apply_inverse_epochs(epochs, inverse_operator, lambda2, method, pick_ori=None, nave=evoked.nave,return_generator=False) 
         # get ROI time courses 
         # read the labels of the source points 
         subjects_dir = os.path.join(bids_dir,'derivatives','freesurfer','subjects')

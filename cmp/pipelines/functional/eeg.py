@@ -385,7 +385,12 @@ class EEGPipeline(Pipeline):
                     (datasource, quality_flow, [('fwd_fname', 'inputnode.fwd_fname'),
                                                  ('inv_fname','inputnode.inv_fname'),
                                                  ('epochs_fif_fname', 'inputnode.epochs_fif_fname'),
+                                                 ('parcellation', 'inputnode.parcellation'),
+                                                 ('subject', 'inputnode.subject'),
+                                                 ('base_directory', 'inputnode.bids_dir'),
                                                  ('measures_file','inputnode.measures_file')]),
+                    
+                    (loader_flow, quality_flow,[('outputnode.src', 'inputnode.src_file')]),
                     
                     (invsol_flow, sinker, [("outputnode.roi_ts_file", "eeg.@roi_ts_file")]),
                 ]

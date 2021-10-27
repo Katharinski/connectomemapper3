@@ -29,7 +29,7 @@ class EEGQualityStage(Stage):
         self.bids_dir = bids_dir
         self.output_dir = output_dir
         self.config = EEGQualityConfig()
-        self.inputs = ["fwd_fname", "inv_fname", "epochs_fif_fname", "measures_file"]
+        self.inputs = ["bids_dir","subject","fwd_fname", "inv_fname", "src_file", "epochs_fif_fname", "measures_file", "parcellation"]
         self.outputs = ["measures_file"]
         
         
@@ -37,9 +37,13 @@ class EEGQualityStage(Stage):
         eegquality_node = pe.Node(interface=EEGQ(), name="eegquality")
         
         flow.connect([(inputnode, eegquality_node,
-               [('fwd_fname', 'fwd_fname'),
+               [('subject','subject'),
+                ('bids_dir','bids_dir'),
+                ('fwd_fname', 'fwd_fname'),
                 ('inv_fname','inv_fname'),
                 ('epochs_fif_fname', 'epochs_fif_fname'),
+                ('src_file','src_file'),
+                ('parcellation','parcellation'),
                 ('measures_file','measures_file')
               ]
                 )])  

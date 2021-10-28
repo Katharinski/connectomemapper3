@@ -104,6 +104,7 @@ class EEGQ(BaseInterface):
         labels_parc = mne.read_labels_from_annot(subject, parc=parcellation, subjects_dir=subjects_dir)
         nroi = len(labels_parc)
         # determine region labels of source points and count vertices per region
+        # note that some vertices are located in the medial wall and are ignored 
         nvert = np.shape(res_matrix)[0]
         labels_resmat = np.empty((nvert,))
         labels_resmat[:] = np.nan
@@ -127,50 +128,7 @@ class EEGQ(BaseInterface):
             # determine position of those used vertices 
             final_id = np.where(np.isin(src[src_id]['vertno'], olap))
             labels_resmat[final_id[0]+add_id] = n
-            
-        ### testing 
-        # unassigned vertices
-        not_assigned = np.where(np.isnan(labels_resmat))
-        # left hem
-        vertices_not_assigned_left = src[0]['vertno'][not_assigned[0][not_assigned[0]<4098]]
-        not_found_left = []
-        for v in vertices_not_assigned_left:
-            not_found_this = True
-            n = 0
-            while not_found_this and n<nroi: 
-                not_found_this = not any(v==labels_parc[n].vertices)
-                n+=2
-    
-            not_found_left.append(not_found_this)
-            
-        
-        # right hem
-        vertices_not_assigned_right = src[1]['vertno'][not_assigned[0][not_assigned[0]>=4098]-4098] 
-        not_found_right = []
-        for v in vertices_not_assigned_right:
-            not_found_this = True
-            n = 1
-            while not_found_this and n<nroi: 
-                not_found_this = not any(v==labels_parc[n].vertices)
-                n+=2
-            not_found_right.append(not_found_this)
-        
-        pdb.set_trace()
-        
-        # check out the unassigned vertices 
-        xdata=src[0]['rr'][:,0]
-        ydata=src[0]['rr'][:,1]
-        zdata=src[0]['rr'][:,2]
-        used_and_assigned=src[0]['vertno'][~np.isnan(labels_resmat[:4098])]
-        used_and_unassigned=src[0]['vertno'][np.isnan(labels_resmat[:4098])]
-        import matplotlib.pyplot as plt
-        from mpl_toolkits import mplot3d
-        ax = plt.axes(projection='3d')
-        ax.scatter3D(xdata[used_and_assigned], ydata[used_and_assigned], zdata[used_and_assigned],'.',color='C0')
-        ax.scatter3D(xdata[used_and_unassigned], ydata[used_and_unassigned], zdata[used_and_unassigned],'o',color='C1')
-        plt.show()
-        ###
-        
+                   
         # following abovementioned paper, compute SVD eigenvectors for each parcel 
         CTFp_mat = np.zeros((nroi,nvert))
         for n in range(nroi): 
@@ -178,10 +136,17 @@ class EEGQ(BaseInterface):
             u,s,CTFp = np.linalg.svd(Mp)
             CTFp_mat[n,:] = CTFp[:,0]
             
-        # PRmat = np.zeros((nroi,nroi))
-        # for n in range(nroi): 
-        #     for m in range(nroi): 
-        #         PRmat[n,m] = 1/
+        PRmat = np.zeros((nroi,nroi))
+        for n in range(nroi):
+            for m in range(nroi):
+                m_vertices = np.where(labels_resmat==m)[0]
+                this_PRmat_nm = 0
+                for k in m_vertices: 
+                    this_PRmat_nm += CTFp_mat[n,k]/np.sum(CTFp_mat[:,k])
+                    
+                PRmat[n,m] = 1/(nvert_rois[n]) * this_PRmat_nm
+                
+        pdb.set_trace()
             
         return measures
 

@@ -350,6 +350,8 @@ class EEGPipeline(Pipeline):
                                                                       self.subject + '.Transform.Electrodes Coregistration.Electrodes to Realigned MRI.txt')
             #######
             
+            datasource.inputs.compute_measures = self.stages['EEGQualityAssessment'].config.compute_measures
+            
             eeg_flow.connect(
                 [
                     (datasource, preparer_flow, [('epochs', 'inputnode.epochs'),
@@ -382,13 +384,14 @@ class EEGPipeline(Pipeline):
                     (loader_flow, invsol_flow, [('outputnode.src', 'inputnode.src_file'),
                                                 ('outputnode.bem', 'inputnode.bem_file')]),
                     
-                    (datasource, quality_flow, [('fwd_fname', 'inputnode.fwd_fname'),
-                                                 ('inv_fname','inputnode.inv_fname'),
-                                                 ('epochs_fif_fname', 'inputnode.epochs_fif_fname'),
-                                                 ('parcellation', 'inputnode.parcellation'),
-                                                 ('subject', 'inputnode.subject'),
-                                                 ('base_directory', 'inputnode.bids_dir'),
-                                                 ('measures_file','inputnode.measures_file')]),
+                    (datasource, quality_flow, [('compute_measures','inputnode.compute_measures'),
+                                                ('fwd_fname', 'inputnode.fwd_fname'),
+                                                ('inv_fname','inputnode.inv_fname'),
+                                                ('epochs_fif_fname', 'inputnode.epochs_fif_fname'),
+                                                ('parcellation', 'inputnode.parcellation'),
+                                                ('subject', 'inputnode.subject'),
+                                                ('base_directory', 'inputnode.bids_dir'),
+                                                ('measures_file','inputnode.measures_file')]),
                     
                     (loader_flow, quality_flow,[('outputnode.src', 'inputnode.src_file')]),
                     

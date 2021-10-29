@@ -19,17 +19,18 @@ from cmtklib.interfaces.eeg_IS_quality import EEGQ
 
 class EEGQualityConfig(TraitedSpec):
     compute_measures = traits.List(['loc_error'], 
-                desc='list of quality measures to be assessed for the inverse solution; default: all available measures')
+                desc='list of quality measures to be assessed for the inverse solution; \
+                default: localization errors only')
 
 
 class EEGQualityStage(Stage):
     def __init__(self, bids_dir, output_dir):
         """Constructor of a :class:`~cmp.stages.eeg.eeg_quality_assessment` instance."""
-        self.name = 'eeg_quality_assesssment_stage'
+        self.name = 'eeg_quality_assessment_stage'
         self.bids_dir = bids_dir
         self.output_dir = output_dir
         self.config = EEGQualityConfig()
-        self.inputs = ["bids_dir","subject","fwd_fname", "inv_fname", "src_file", "epochs_fif_fname", "measures_file", "parcellation"]
+        self.inputs = ["compute_measures","bids_dir","subject","fwd_fname", "inv_fname", "src_file", "epochs_fif_fname", "measures_file", "parcellation"]
         self.outputs = ["measures_file"]
         
         
@@ -37,7 +38,8 @@ class EEGQualityStage(Stage):
         eegquality_node = pe.Node(interface=EEGQ(), name="eegquality")
         
         flow.connect([(inputnode, eegquality_node,
-               [('subject','subject'),
+               [('compute_measures','compute_measures'),
+                ('subject','subject'),
                 ('bids_dir','bids_dir'),
                 ('fwd_fname', 'fwd_fname'),
                 ('inv_fname','inv_fname'),

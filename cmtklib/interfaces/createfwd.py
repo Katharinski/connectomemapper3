@@ -48,7 +48,7 @@ class CreateFwd(BaseInterface):
         epochs = mne.read_epochs(epochs_fname)
         info = epochs.info 
         
-        if not os.path.exists(fwd_fname):
+        if os.path.exists(fwd_fname):
             self.has_run = True
         else:
             self.has_run = self._create_Fwd(src, bem, trans, info, fwd_fname)

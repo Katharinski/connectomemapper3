@@ -30,7 +30,7 @@ class EEGQualityStage(Stage):
         self.bids_dir = bids_dir
         self.output_dir = output_dir
         self.config = EEGQualityConfig()
-        self.inputs = ["compute_measures","bids_dir","subject","fwd_fname", "inv_fname", "src_file", "epochs_fif_fname", "measures_file", "parcellation"]
+        self.inputs = ["compute_measures","bids_dir","subject","roi_ts_file","fwd_fname", "inv_fname", "src_file", "epochs_fif_fname", "measures_file", "parcellation"]
         self.outputs = ["measures_file"]
         
         
@@ -41,6 +41,7 @@ class EEGQualityStage(Stage):
                [('compute_measures','compute_measures'),
                 ('subject','subject'),
                 ('bids_dir','bids_dir'),
+                ('roi_ts_file','roi_ts_file'),
                 ('fwd_fname', 'fwd_fname'),
                 ('inv_fname','inv_fname'),
                 ('epochs_fif_fname', 'epochs_fif_fname'),

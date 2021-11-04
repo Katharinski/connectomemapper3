@@ -21,9 +21,12 @@ class EEGQInputSpec(BaseInterfaceInputSpec):
     
     bids_dir = traits.Str(
         desc='base directory', mandatory=True)
+    # this input needs to exist in order for all other data to exist 
+    roi_ts_file = traits.File(
+        exists=True, desc="rois * time series in .npy format")
     
     fwd_fname = traits.File(
-        desc="forward solution in fif format", mandatory=True)
+        exists=True, desc="forward solution in fif format", mandatory=True)
     
     inv_fname = traits.File(
         desc="inverse operator in fif format", mandatory=True)

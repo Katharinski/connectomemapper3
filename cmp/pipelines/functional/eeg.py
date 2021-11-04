@@ -395,6 +395,8 @@ class EEGPipeline(Pipeline):
                     
                     (loader_flow, quality_flow,[('outputnode.src', 'inputnode.src_file')]),
                     
+                    (invsol_flow, quality_flow,[("outputnode.roi_ts_file", "inputnode.roi_ts_file")]),
+                    
                     (invsol_flow, sinker, [("outputnode.roi_ts_file", "eeg.@roi_ts_file")]),
                 ]
             )

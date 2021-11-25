@@ -856,7 +856,6 @@ class AnatomicalPipeline(cmp_common.Pipeline):
 
         iflogger = logging.getLogger('nipype.interface')
         iflogger.info("**** Processing ****")
-
         anat_flow = self.create_pipeline_flow(cmp_deriv_subject_directory=cmp_deriv_subject_directory,
                                               nipype_deriv_subject_directory=nipype_deriv_subject_directory)
         anat_flow.write_graph(graph2use='colored',

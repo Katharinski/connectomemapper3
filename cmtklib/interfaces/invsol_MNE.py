@@ -22,7 +22,7 @@ class MNEInverseSolutionInputSpec(BaseInterfaceInputSpec):
         desc='base directory', mandatory=True)
     
     epochs_fif_fname = traits.File(
-        exists=True, desc='eeg * epochs in .set format', mandatory=True)
+        exists=True, desc='eeg * epochs in .fif format', mandatory=True)
 
     src_file = traits.List(
         exists=True, desc='source space created with MNE', mandatory=True)
@@ -56,6 +56,9 @@ class MNEInverseSolutionOutputSpec(TraitedSpec):
 
     roi_ts_file = traits.File(
         exists=True, desc="rois * time series in .npy format")
+    
+    fwd_fname = traits.File(
+        exists=True, desc="forward solution in fif format", mandatory=True)
 
 
 class MNEInverseSolution(BaseInterface):
@@ -73,7 +76,7 @@ class MNEInverseSolution(BaseInterface):
         subject = self.inputs.subject
         epochs_file = self.inputs.epochs_fif_fname   
         src_file = self.inputs.src_file[0]
-        fwd_fname = self.inputs.fwd_fname
+        self.fwd_fname = self.inputs.fwd_fname
         inv_fname = self.inputs.inv_fname
         noise_cov_fname = self.inputs.noise_cov_fname
         parcellation = self.inputs.parcellation
@@ -81,7 +84,7 @@ class MNEInverseSolution(BaseInterface):
                 
         if not os.path.exists(self.roi_ts_file):
             roi_tcs = self._createInv_MNE(
-                bids_dir, subject, epochs_file, fwd_fname, noise_cov_fname, src_file, parcellation, inv_fname)
+                bids_dir, subject, epochs_file,self.fwd_fname,noise_cov_fname,src_file,parcellation,inv_fname)
             np.save(self.roi_ts_file, roi_tcs)
         
         return runtime
@@ -110,7 +113,7 @@ class MNEInverseSolution(BaseInterface):
         stcs = mne.minimum_norm.apply_inverse_epochs(epochs, inverse_operator, lambda2, method, pick_ori=None, nave=evoked.nave,return_generator=False) 
         # get ROI time courses 
         # read the labels of the source points 
-        subjects_dir = os.path.join(bids_dir,'derivatives','freesurfer','subjects')
+        subjects_dir = os.path.join(bids_dir,'derivatives','freesurfer')
         labels_parc = mne.read_labels_from_annot(subject, parc=parcellation, subjects_dir=subjects_dir)
         # get the ROI time courses 
         roi_tcs = mne.extract_label_time_course(stcs, labels_parc, src, mode='pca_flip', allow_empty=True,
@@ -120,6 +123,7 @@ class MNEInverseSolution(BaseInterface):
 
     def _list_outputs(self):
         outputs = self._outputs().get()
+        outputs['fwd_fname'] = self.fwd_fname
         outputs['roi_ts_file'] = self.roi_ts_file
         return outputs
 

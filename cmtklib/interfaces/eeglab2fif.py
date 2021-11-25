@@ -15,7 +15,7 @@ class EEGLAB2fifInputSpec(BaseInterfaceInputSpec):
         exists=True, desc='epochs metadata in _behav.txt', mandatory=True)
 
     epochs_fif_fname = traits.File(
-        desc='eeg * epochs in .set format', mandatory=True)
+        desc='eeg * epochs in .fif format', mandatory=True)
     
     electrode_positions_file = traits.File(
         exists=True, desc='positions of EEG electrodes in a txt file', mandatory=True)
@@ -41,6 +41,9 @@ class EEGLAB2fifOutputSpec(TraitedSpec):
 
     derivative_list = traits.List(
         exists=True, desc='List of derivatives to add to the datagrabber', mandatory=True)
+    
+    epochs_fif_fname = traits.File(
+        exists=True, desc='eeg * epochs in .fif format', mandatory=True)
 
 
 class EEGLAB2fif(BaseInterface):
@@ -63,10 +66,11 @@ class EEGLAB2fif(BaseInterface):
         
         epochs_fif_fname = self.inputs.epochs_fif_fname
         EEG_params = self.inputs.EEG_params
+        self.epochs_fif_fname = self.inputs.epochs_fif_fname
         self.derivative_list = self.inputs.derivative_list
         self.output_query = self.inputs.output_query
-        if not os.path.exists(epochs_fif_fname): 
-            self._convert_eeglab2fif(epochs_file, behav_file, epochs_fif_fname, montage_fname, dev_head_t_fname, EEG_params)
+        if not os.path.exists(self.epochs_fif_fname): 
+            self._convert_eeglab2fif(epochs_file, behav_file, self.epochs_fif_fname, montage_fname, dev_head_t_fname, EEG_params)
         self.derivative_list.append('cmp')
         self.output_query['EEG'] = {
             'suffix': 'epo',
@@ -76,7 +80,7 @@ class EEGLAB2fif(BaseInterface):
 
     @staticmethod
     def _convert_eeglab2fif(epochs_file, behav_file, epochs_fif_fname, montage_fname, dev_head_t_fname, EEG_params):
-        behav = pd.read_csv(behav_file, sep=",")
+        behav = pd.read_csv(behav_file, sep="\t")
         behav = behav[behav.bad_trials == 0]
         epochs = mne.read_epochs_eeglab(epochs_file, events=None, event_id=None, eog=(), verbose=None,
                                         uint16_codec=None)
@@ -110,6 +114,8 @@ class EEGLAB2fif(BaseInterface):
 
     def _list_outputs(self):
         outputs = self._outputs().get()
+        outputs['epochs_fif_fname'] = self.epochs_fif_fname
         outputs['output_query'] = self.output_query
         outputs['derivative_list'] = self.derivative_list
+        
         return outputs

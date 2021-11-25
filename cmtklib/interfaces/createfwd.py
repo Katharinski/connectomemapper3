@@ -27,7 +27,7 @@ class CreateFwdInputSpec(BaseInterfaceInputSpec):
         exists=True, desc='trans.fif file containing co-registration information (electrodes x MRI)')
     
     epochs_fif_fname = traits.File(
-        exists=True, desc='eeg * epochs in .set format, containing information about electrode montage', mandatory=True)
+        desc='eeg * epochs in .fif format, containing information about electrode montage', mandatory=True)
 
 class CreateFwdOutputSpec(TraitedSpec):
     """Output specification for creating MNE source space."""

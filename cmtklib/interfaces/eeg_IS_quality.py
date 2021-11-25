@@ -120,7 +120,7 @@ class EEGQ(BaseInterface):
         
         if 'PRmat' in compute_measures: 
             # parcellation-based quality measures 
-            subjects_dir = os.path.join(bids_dir,'derivatives','freesurfer','subjects')
+            subjects_dir = os.path.join(bids_dir,'derivatives','freesurfer')
             labels_parc = mne.read_labels_from_annot(subject, parc=parcellation, subjects_dir=subjects_dir)
             nroi = len(labels_parc)
             # determine region labels of source points and count vertices per region
@@ -192,9 +192,7 @@ class EEGQ(BaseInterface):
                     np.sum(np.square(PRmat-np.mean(PRmat))),\
                         np.sum(np.square(np.eye(nroi)-np.mean(np.eye(nroi))))))
             measures['distinguishability_index'] = distinguishability_index
-        
-        pdb.set_trace()
-        
+
         return measures
 
     def _list_outputs(self):

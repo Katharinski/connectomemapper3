@@ -10,8 +10,6 @@ import numpy as  np
 import mne 
 from nipype.interfaces.base import BaseInterface, BaseInterfaceInputSpec, traits, TraitedSpec
 
-import cmtklib.interfaces.my_mne_minimum_norm_inverse as my_mne_minimum_norm_inverse # version of mne.minimum_norm.inverse.py that returns the inverse matrix 
-
 class MNEInverseSolutionInputSpec(BaseInterfaceInputSpec):
     """Input specification for InverseSolution."""
     
@@ -81,11 +79,19 @@ class MNEInverseSolution(BaseInterface):
         noise_cov_fname = self.inputs.noise_cov_fname
         parcellation = self.inputs.parcellation
         self.roi_ts_file = self.inputs.roi_ts_file 
+        
+        # temporary workaround until harmonized with invsol (cartool):
+        # want to use pickle so labels can be saved alongside time courses
+        if self.roi_ts_file[-3:]=='npy':
+            self.roi_ts_file = self.roi_ts_file[:-3]+'pkl'
                 
         if not os.path.exists(self.roi_ts_file):
             roi_tcs = self._createInv_MNE(
                 bids_dir, subject, epochs_file,self.fwd_fname,noise_cov_fname,src_file,parcellation,inv_fname)
-            np.save(self.roi_ts_file, roi_tcs)
+
+            with open(self.roi_ts_file,'wb') as f: 
+                pickle.dump(roi_tcs,f,pickle.HIGHEST_PROTOCOL)
+            # np.save(self.roi_ts_file, roi_tcs)
         
         return runtime
 
@@ -116,8 +122,12 @@ class MNEInverseSolution(BaseInterface):
         subjects_dir = os.path.join(bids_dir,'derivatives','freesurfer')
         labels_parc = mne.read_labels_from_annot(subject, parc=parcellation, subjects_dir=subjects_dir)
         # get the ROI time courses 
-        roi_tcs = mne.extract_label_time_course(stcs, labels_parc, src, mode='pca_flip', allow_empty=True,
+        data = mne.extract_label_time_course(stcs, labels_parc, src, mode='pca_flip', allow_empty=True,
         return_generator=False)
+        
+        roi_tcs = dict()
+        roi_tcs['data'] = data
+        roi_tcs['labels'] = labels_parc
         
         return roi_tcs
 

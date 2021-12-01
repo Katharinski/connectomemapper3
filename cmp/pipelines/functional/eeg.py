@@ -280,15 +280,13 @@ class EEGPipeline(Pipeline):
                 ]
             )
         elif self.stages['EEGPreparer'].config.invsol_format.split('-')[0] == 'mne':
-            # MNE finds Freesurfer annot files based on parcellation label 
-            if parcellation_desc=='':
-                parcellation = parcellation_label
+            # Freesurfer annot files are required
+            if parcellation_suffix=='':
+                parcellation = parcellation_label # aparc
             else:
-                parcellation = parcellation_label + '.' + parcellation_desc
+                parcellation = parcellation_label + '.' + parcellation_suffix # lausanne2008.scalex where x=1...5
 
-            datasource.inputs.parcellation = parcellation#os.path.join(self.base_directory,
-            #                                                  'derivatives', 'cmp', self.subject,
-            #                                                  'anat', parcellation)
+            datasource.inputs.parcellation = parcellation
             
             # define names for MNE outputs 
             datasource.inputs.noise_cov_fname = os.path.join(self.base_directory,
@@ -319,28 +317,14 @@ class EEGPipeline(Pipeline):
                                                          self.subject + '-inv.fif')
             
             ######
-            # this is non-standard, needs to be fixed!! 
-            # datasource.inputs.electrode_positions_file = os.path.join(self.base_directory,
-            #                                                           'derivatives',
-            #                                                           cartool_dir,
-            #                                                           self.subject, 
-            #                                                           'eeg', 
-            #                                                           self.subject + '.xyz')                                                                      
-            
+            # These two files come from cartool, which is non-standard, needs to be fixed!!  
             datasource.inputs.electrode_positions_file = os.path.join(self.base_directory,
                                                                       'derivatives',
                                                                       'eeglab',
                                                                       self.subject, 
                                                                       'eeg', 
                                                                       self.subject + '.xyz')
-            
-            # datasource.inputs.MRI_align_transform_file = os.path.join(self.base_directory,
-            #                                                           'derivatives',
-            #                                                           cartool_dir,
-            #                                                           self.subject, 
-            #                                                           'eeg', 
-            #                                                           self.subject + '.Transform.Electrodes Coregistration.Electrodes to Realigned MRI.txt')
-            
+
             datasource.inputs.MRI_align_transform_file = os.path.join(self.base_directory,
                                                                       'derivatives',
                                                                       'eeglab',

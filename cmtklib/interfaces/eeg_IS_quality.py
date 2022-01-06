@@ -65,11 +65,23 @@ class EEGQ(BaseInterface):
         fwd_fname = self.inputs.fwd_fname
         inv_fname = self.inputs.inv_fname
         src_file = self.inputs.src_file[0]
-
-        measures = self._compute_measures(self.inputs.compute_measures,fwd_fname,\
-                                          inv_fname,subject,bids_dir,parcellation,src_file)
-        with open(self.inputs.measures_file,'wb') as f: 
-            pickle.dump(measures,f, pickle.HIGHEST_PROTOCOL)
+        
+        # check if file with output doesn't exist or if file is incomplete
+        if os.path.exists(self.inputs.measures_file):
+            with open(self.inputs.measures_file,'rb') as f:
+                measures = pickle.load(f)
+                run_computation = False
+                for m in self.inputs.compute_measures:
+                    if m not in measures.keys():
+                        run_computation = True
+        else:
+            run_computation = True
+        
+        if run_computation:
+            measures = self._compute_measures(self.inputs.compute_measures,fwd_fname,\
+                                              inv_fname,subject,bids_dir,parcellation,src_file)
+            with open(self.inputs.measures_file,'wb') as f: 
+                pickle.dump(measures,f, pickle.HIGHEST_PROTOCOL)
 
         return runtime
 

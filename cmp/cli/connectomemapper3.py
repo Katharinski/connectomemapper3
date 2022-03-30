@@ -134,11 +134,11 @@ def create_parser():
         "the fMRI processing pipeline",
     )
 
-    # p.add_argument(
-    #     "--eeg_pipeline_config",
-    #     help="Configuration .txt file for processing stages of "
-    #     "the EEG source reconstruction pipeline"
-    # )
+    p.add_argument(
+        "--eeg_pipeline_config",
+        help="Configuration .txt file for processing stages of "
+        "the EEG source reconstruction pipeline"
+    )
 
     p.add_argument(
         "--session_label",
@@ -216,7 +216,7 @@ def main():
     project.anat_config_file = os.path.abspath(args.anat_pipeline_config)
 
     # Perform only the anatomical pipeline
-    if args.dwi_pipeline_config is None and args.func_pipeline_config is None:
+    if args.dwi_pipeline_config is None and args.func_pipeline_config is None and args.eeg_pipeline_config is None:
 
         anat_pipeline = cmp.project.init_anat_project(project, False)
         if anat_pipeline is not None:
@@ -236,7 +236,7 @@ def main():
                 return exit_code
 
     # Perform the anatomical and the diffusion pipelines
-    elif args.dwi_pipeline_config is not None and args.func_pipeline_config is None:
+    elif args.dwi_pipeline_config is not None and args.func_pipeline_config is None and args.eeg_pipeline_config is None:
 
         project.dmri_config_file = os.path.abspath(args.dwi_pipeline_config)
 
@@ -289,7 +289,7 @@ def main():
             return exit_code
 
     # Perform the anatomical and the fMRI pipelines
-    elif args.dwi_pipeline_config is None and args.func_pipeline_config is not None:
+    elif args.dwi_pipeline_config is None and args.func_pipeline_config is not None and args.eeg_pipeline_config is None:
 
         project.fmri_config_file = os.path.abspath(args.func_pipeline_config)
 
@@ -483,8 +483,8 @@ def main():
             exit_code = 1
             return exit_code
 
-    # Perform all pipelines (anatomical/diffusion/fMRI)
-    elif args.dwi_pipeline_config is not None and args.func_pipeline_config is not None:
+    # Perform all pipelines (anatomical/diffusion/fMRI/EEG)
+    elif args.dwi_pipeline_config is not None and args.func_pipeline_config is not None and args.eeg_pipeline_config is not None:
 
         project.dmri_config_file = os.path.abspath(args.dwi_pipeline_config)
         project.fmri_config_file = os.path.abspath(args.func_pipeline_config)

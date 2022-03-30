@@ -17,6 +17,7 @@ from cmp.pipelines.common import *
 from cmp.stages.eeg.inverse_solution import EEGInverseSolutionStage
 from cmp.stages.eeg.loader import EEGLoaderStage
 from cmp.stages.eeg.preparer import EEGPreparerStage
+from cmp.stages.eeg.eeg_quality_assessment import EEGQualityStage
 from cmtklib.bids.io import (
     __cmp_directory__,
     __nipype_directory__,
@@ -120,8 +121,9 @@ class EEGPipeline(Pipeline):
             "EEGPreparer": EEGPreparerStage(bids_dir=project_info.base_directory, output_dir=self.output_directory),
             "EEGLoader": EEGLoaderStage(bids_dir=project_info.base_directory, output_dir=self.output_directory),
             "EEGInverseSolution": EEGInverseSolutionStage(
-                bids_dir=project_info.base_directory, output_dir=self.output_directory
-            ),
+                bids_dir=project_info.base_directory, output_dir=self.output_directory),
+            'EEGQualityAssessment': EEGQualityStage(bids_dir=project_info.base_directory,
+                                                    output_dir=self.output_directory),
         }
 
         cmp_common.Pipeline.__init__(self, project_info)

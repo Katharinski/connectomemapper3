@@ -286,10 +286,11 @@ class EEGPipeline(Pipeline):
         preparer_flow = self.create_stage_flow("EEGPreparer")
         loader_flow = self.create_stage_flow("EEGLoader")
         invsol_flow = self.create_stage_flow("EEGInverseSolution")
-
-        # Read name of eeg file and determine format and derivatives folder name
-        epochs_fname = self.stages["EEGPreparer"].config.epochs
-        file_extension_start = epochs_fname.find(".")
+        quality_flow = self.create_stage_flow("EEGQualityAssessment")
+        
+        # read name of eeg file and determine format and derivatives folder name 
+        epochs_fname = self.stages['EEGPreparer'].config.epochs        
+        file_extension_start = epochs_fname.find('.')
         eeg_format = epochs_fname[file_extension_start:]
         if eeg_format == ".set":
             derivatives_folder = __eeglab_directory__
@@ -461,6 +462,20 @@ class EEGPipeline(Pipeline):
                     (loader_flow, invsol_flow, [('outputnode.src', 'inputnode.src_file'),
                                                 ('outputnode.bem', 'inputnode.bem_file')]),
 
+                    
+                    (datasource, quality_flow, [('compute_measures','inputnode.compute_measures'),                                                
+                                                ('inv_fname','inputnode.inv_fname'),
+                                                ('epochs_fif_fname', 'inputnode.epochs_fif_fname'),
+                                                ('parcellation', 'inputnode.parcellation'),
+                                                ('subject', 'inputnode.subject'),
+                                                ('base_directory', 'inputnode.bids_dir'),
+                                                ('measures_file','inputnode.measures_file')]),
+                    
+                    (loader_flow, quality_flow,[('outputnode.src', 'inputnode.src_file')]),
+                    
+                    (invsol_flow, quality_flow,[('outputnode.fwd_fname', 'inputnode.fwd_fname'),
+                                                ("outputnode.roi_ts_file", "inputnode.roi_ts_file")]),
+                    
                     (invsol_flow, sinker, [("outputnode.roi_ts_file", "eeg.@roi_ts_file")]),
                 ]
             )

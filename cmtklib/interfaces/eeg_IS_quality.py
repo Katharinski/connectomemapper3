@@ -8,7 +8,7 @@ import os
 import pickle
 import numpy as np
 import mne
-from mne.minimum_norm.resolution_matrix import make_inverse_resolution_matrix
+from mne.minimum_norm.resolution_matrix_PR8639 import make_inverse_resolution_matrix
 from nipype.interfaces.base import BaseInterface, BaseInterfaceInputSpec, traits, TraitedSpec
 import pdb
 

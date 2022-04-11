@@ -347,6 +347,16 @@ class EEGPipeline(Pipeline):
                 cmp_path_prefix_file,  f"{self.subject}_epo.fif"
             )
 
+            # name of file where quality measures of inverse solution are saved
+            datasource.inputs.measures_file = os.path.join(
+                self.base_directory,
+                'derivatives',
+                __cmp_directory__,
+                self.subject,
+                'eeg',
+                self.subject + '_QEEG.pkl'
+            )
+
         # Name of output file (ROI time courses)
         if parcellation_resolution is not None and parcellation_resolution != "":
             datasource.inputs.roi_ts_file = os.path.join(
@@ -416,7 +426,7 @@ class EEGPipeline(Pipeline):
             )
 
             datasource.inputs.trans_fname = os.path.join(
-                cmp_path_prefix_file, f'{self.subject}_trans.fif')
+                cmp_path_prefix_file, f'{self.subject}-trans.fif')
 
             datasource.inputs.fwd_fname = os.path.join(
                 cmp_path_prefix_file, f'{self.subject}_fwd.fif'
@@ -430,6 +440,8 @@ class EEGPipeline(Pipeline):
             datasource.inputs.electrode_positions_file = os.path.join(
                 eeglab_path_prefix_file, f'{self.subject}_eeg.xyz'
             )
+            
+            datasource.inputs.compute_measures = self.stages['EEGQualityAssessment'].config.compute_measures
 
             # fmt: off
             eeg_flow.connect(

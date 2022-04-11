@@ -10,6 +10,7 @@ import numpy as np
 import mne
 from mne.minimum_norm.resolution_matrix_PR8639 import make_inverse_resolution_matrix
 from nipype.interfaces.base import BaseInterface, BaseInterfaceInputSpec, traits, TraitedSpec
+from cmtklib.bids.io import __freesurfer_directory__
 import pdb
 
 
@@ -18,28 +19,28 @@ class EEGQInputSpec(BaseInterfaceInputSpec):
 
     subject = traits.Str(
         desc='subject', mandatory=True)
-    
+
     bids_dir = traits.Str(
         desc='base directory', mandatory=True)
-    # this input needs to exist in order for all other data to exist 
+    # this input needs to exist in order for all other data to exist
     roi_ts_file = traits.File(
         exists=True, desc="rois * time series in .npy format")
-    
+
     fwd_fname = traits.File(
         exists=True, desc="forward solution in fif format", mandatory=True)
-    
+
     inv_fname = traits.File(
         desc="inverse operator in fif format", mandatory=True)
 
     src_file = traits.List(
         exists=True, desc='source space created with MNE', mandatory=True)
-    
+
     epochs_fif_fname = traits.File(
         desc='eeg * epochs in .set format', mandatory=True)
-    
+
     compute_measures = traits.List(
         desc='List with quality measures that should be computed', mandatory=True)
-    
+
     measures_file = traits.File(
         exists=False, desc="Quality measures dict in .pkl format")
 
@@ -58,7 +59,6 @@ class EEGQ(BaseInterface):
     output_spec = EEGQOutputSpec
 
     def _run_interface(self, runtime):
-        
         bids_dir = self.inputs.bids_dir
         subject = self.inputs.subject
         parcellation = self.inputs.parcellation
@@ -109,35 +109,60 @@ class EEGQ(BaseInterface):
             return measures
 
         fwd = mne.read_forward_solution(fwd_fname)
-        forward_1D = mne.forward.convert_forward_solution(fwd, surf_ori=True,force_fixed=True)
+        # forward_1D = mne.forward.convert_forward_solution(fwd, surf_ori=True,force_fixed=True)
         inverse_operator = mne.minimum_norm.read_inverse_operator(inv_fname)
 
-        method = "sLORETA" 
+        method = "sLORETA"
         snr = 3.
         lambda2 = 1. / snr ** 2
 
-        res_matrix = make_inverse_resolution_matrix(forward_1D,inverse_operator,method=method,lambda2=lambda2)
+        # TODO: implement possibilities for different dimensions of res_matrix
+        # res_matrix = make_inverse_resolution_matrix(forward_1D,inverse_operator,method=method,lambda2=lambda2)
+        res_matrix = make_inverse_resolution_matrix(fwd,inverse_operator,method=method,lambda2=lambda2)
+
+
+        # reduce vector resolution matrix to scalar resolution matrix
+        nsources = fwd['nsource']
+        counter1 = 0
+        counter2 = 0
         
-        measures['res_matrix'] = res_matrix
-        
-        if 'loc_error' in compute_measures: 
+        resmat_1D = np.zeros((nsources,nsources))
+        print('Reducing resolution matrix to scalar estimates...')
+        # set up progress messaging
+        prctls = range(0,100,10)
+        nvert_prctiles = np.round(np.percentile(range(nsources),prctls)).astype(int)
+        for n in range(nsources): # row indices
+            if n in nvert_prctiles:
+                p = np.round((n/nsources)*100).astype(int)
+                print(f"{p}%")
+            for m in range(nsources): # column indices
+                resmat_1D[n,m] = np.linalg.norm(res_matrix[counter1:(counter1+3),counter2:(counter2+3)],ord=2)
+                counter2+=3
+            counter1+=3
+            counter2 = 0 # start again at column 0
+
+        print('Done!')
+
+        measures['res_matrix'] = resmat_1D
+
+        if 'loc_error' in compute_measures:
             # localization error 
             # calculate difference in position between peak of point spread function and dipole position
-            LE_psf = mne.minimum_norm.resolution_metrics(res_matrix, fwd['src'], function='psf', metric='peak_err')
+            LE_psf = mne.minimum_norm.resolution_metrics(resmat_1D, fwd['src'], function='psf', metric='peak_err')
             measures['loc_error_psf'] = LE_psf
-            
+
             # calculate difference in position between peak of cross talk function and dipole position
-            LE_ctf = mne.minimum_norm.resolution_metrics(res_matrix, fwd['src'], function='ctf', metric='peak_err')
+            LE_ctf = mne.minimum_norm.resolution_metrics(resmat_1D, fwd['src'], function='ctf', metric='peak_err')
             measures['loc_error_ctf'] = LE_ctf
-        
+
         if 'PRmat' in compute_measures: 
             # parcellation-based quality measures 
-            subjects_dir = os.path.join(bids_dir,'derivatives','freesurfer')
+            subjects_dir = os.path.join(bids_dir,'derivatives',__freesurfer_directory__)
             labels_parc = mne.read_labels_from_annot(subject, parc=parcellation, subjects_dir=subjects_dir)
             nroi = len(labels_parc)
             # determine region labels of source points and count vertices per region
             # note that some vertices are located in the medial wall and are ignored
-            nvert = np.shape(res_matrix)[0]
+            nvert = np.shape(resmat_1D)[0]
             labels_resmat = np.empty((nvert,))
             labels_resmat[:] = np.nan
             nvert_rois = np.zeros((nroi,))
@@ -161,15 +186,15 @@ class EEGQ(BaseInterface):
                 # determine position of those used vertices 
                 final_id = np.where(np.isin(src[src_id]['vertno'], olap))
                 labels_resmat[final_id[0]+add_id] = n
-    
+
             # following abovementioned paper, compute SVD eigenvectors for each parcel 
             CTFp_mat = np.zeros((nroi,nvert))
             print('Computing parcel resolution matrix...')
             for n in range(nroi): 
-                Mp = abs(res_matrix[labels_resmat==n,:])
+                Mp = abs(resmat_1D[labels_resmat==n,:])
                 u,s,CTFp = np.linalg.svd(Mp)
                 CTFp_mat[n,:] = CTFp[0,:] # rows contain eigenvectors as it's transposed
-            
+
             PRmat = np.zeros((nroi,nroi))
             for n in range(nroi):
                 for m in range(nroi):
@@ -178,22 +203,22 @@ class EEGQ(BaseInterface):
                     for k in m_vertices: 
                         this_PRmat_nm += CTFp_mat[n,k]/np.sum(CTFp_mat[:,k])
                     PRmat[n,m] = 1/(nvert_rois[n]) * this_PRmat_nm
-                
+
             measures['PRmat'] = PRmat
             # necessary for further processing: 
             measures['labels_resmat'] = labels_resmat
             measures['names_rois'] = names_rois
             measures['nvert_rois'] = nvert_rois
-        
+
             print('Done!')
-        
+
             # check out the matrix 
             # import matplotlib.pyplot as plt
             # ax = plt.axes()
             # ax.imshow(PRmat,aspect='auto')
             # ax.set_xticks(range(nroi))
             # ax.set_xticklabels(names_rois, rotation=90)
-    
+
             sensitivity_index = 1/nroi * np.sum(np.diag(PRmat))
             measures['sensitivity_index'] = sensitivity_index
             distinguishability_index = np.sum(np.multiply(

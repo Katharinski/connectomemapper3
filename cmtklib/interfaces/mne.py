@@ -551,33 +551,39 @@ class MNEInverseSolution(BaseInterface):
         fwd = mne.read_forward_solution(fwd_fname)
         noise_cov = mne.read_cov(noise_cov_fname)
         src = mne.read_source_spaces(src_file, patch_stats=False, verbose=None)
+
+        # read the ROI labels of the source points
+        subjects_dir = os.path.join(bids_dir, "derivatives", __freesurfer_directory__)
+        labels_parc = mne.read_labels_from_annot(subject, parc=parcellation, subjects_dir=subjects_dir)
+        nROI = np.shape(labels_parc)[0]
+
         # compute the inverse operator
         inverse_operator = mne.minimum_norm.make_inverse_operator(
             epochs.info, fwd, noise_cov, loose=1, depth=None, fixed=False
         )
-        # inverse_operator = mne.minimum_norm.make_inverse_operator(
-        #     epochs.info, fwd, noise_cov, loose=0, depth=None, fixed=True)
         mne.minimum_norm.write_inverse_operator(inv_fname, inverse_operator)
-        # compute the time courses of the source points
-        # some parameters
+
+        # compute ROI time courses of single trials
+        # parameters
         method = "sLORETA"
         snr = 3.0
         lambda2 = 1.0 / snr ** 2
         evoked = epochs.average().pick("eeg")
-        # stcs, inverse_matrix = my_mne_minimum_norm_inverse.apply_inverse_epochs(
-        #   epochs, inverse_operator, lambda2, method, pick_ori="normal", nave=evoked.nave,return_generator=False
-        # )
-        stcs = mne.minimum_norm.apply_inverse_epochs(
-            epochs, inverse_operator, lambda2, method, pick_ori=None, nave=evoked.nave, return_generator=False
-        )
-        # get ROI time courses
-        # read the labels of the source points
-        subjects_dir = os.path.join(bids_dir, "derivatives", __freesurfer_directory__)
-        labels_parc = mne.read_labels_from_annot(subject, parc=parcellation, subjects_dir=subjects_dir)
-        # get the ROI time courses
-        data = mne.extract_label_time_course(
-            stcs, labels_parc, src, mode="pca_flip", allow_empty=True, return_generator=False
-        )
+        # explicitly iterate over trials to save memory
+        ntrials,nel,T = np.shape(epochs)
+        data = np.zeros((ntrials,nROI,T))
+        for tr in range(ntrials):
+            trial = epochs.__getitem__(tr)
+            print(f"{tr} of {ntrials}")
+            # get TCs of source points by taking normal components of vector estimates
+            stcs_vec = mne.minimum_norm.apply_inverse_epochs(
+                trial, inverse_operator, lambda2, method, pick_ori='normal', nave=evoked.nave,
+                return_generator=False,verbose=50) # verbose=50: suppress output
+            # get ROI time courses for this trial
+            ROI_TC = mne.extract_label_time_course(
+                stcs_vec[0], labels_parc, src, mode='pca_flip', allow_empty=True,
+                return_generator=False,verbose=50)
+            data[tr,:,:] = ROI_TC
 
         roi_tcs = dict()
         roi_tcs["data"] = data

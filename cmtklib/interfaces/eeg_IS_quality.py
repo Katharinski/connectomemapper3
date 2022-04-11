@@ -71,9 +71,14 @@ class EEGQ(BaseInterface):
             with open(self.inputs.measures_file,'rb') as f:
                 measures = pickle.load(f)
                 run_computation = False
-                for m in self.inputs.compute_measures:
-                    if m not in measures.keys():
+                if 'PRmat' in self.inputs.compute_measures:
+                    if ('PRmat' not in measures.keys()) or ('sensitivity_index' not in measures.keys()) or ('distinguishability_index' not in measures.keys()):
                         run_computation = True
+                if 'loc_error' in self.inputs.compute_measures:
+                    if ('loc_error_psf' not in measures.keys()) or ('loc_error_ctf' not in measures.keys()):
+                        run_computation = True
+                if 'res_matrix' not in measures.keys():
+                    run_computation = True
         else:
             run_computation = True
         

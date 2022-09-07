@@ -440,7 +440,7 @@ class EEGPipeline(Pipeline):
             datasource.inputs.electrode_positions_file = os.path.join(
                 eeglab_path_prefix_file, f'{self.subject}_eeg.xyz'
             )
-            
+
             datasource.inputs.compute_measures = self.stages['EEGQualityAssessment'].config.compute_measures
 
             # fmt: off
